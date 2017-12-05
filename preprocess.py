@@ -3,7 +3,7 @@ import os
 
 height = 160
 width = 160
-frame = 4
+frame = 20
 
 def mkdir(path):
     if not os.path.isdir(path):
