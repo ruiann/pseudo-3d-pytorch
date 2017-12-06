@@ -80,24 +80,29 @@ model = model.cuda()
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
+
+def train():
+    data, data_label = read_batch(files, labels)
+    out = model(torch.autograd.Variable(data.float()).cuda())
+    loss = criterion(out, torch.autograd.Variable(data_label, requires_grad=False).cuda())
+    print(i, loss.data[0])
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+
+def test():
+    test_data, test_label = read_batch(test_files, test_labels)
+    out = model(torch.autograd.Variable(test_data.float(), volatile=True).cuda())
+    _, predict_label = torch.max(out, dim=1)
+    eq = torch.eq(predict_label, torch.autograd.Variable(test_label).cuda())
+    print(eq)
+
+
 i = 1
 while i < step:
     if i % 100 == 0:
-        test_data, test_label = read_batch(test_files, test_labels)
-        out = model(torch.autograd.Variable(test_data.float()).cuda())
-        _, predict_label = torch.max(out, dim=1)
-        eq = torch.eq(predict_label, torch.autograd.Variable(test_label).cuda())
-        print(eq)
-        loss = criterion(out, torch.autograd.Variable(data_label, requires_grad=False).cuda())
-        loss.backward()
-        optimizer.zero_grad()
-        optimizer.step()
+        test()
     else:
-        data, data_label = read_batch(files, labels)
-        out = model(torch.autograd.Variable(data.float()).cuda())
-        loss = criterion(out, torch.autograd.Variable(data_label, requires_grad=False).cuda())
-        print(i, loss.data[0])
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        train()
     i = i + 1
