@@ -99,10 +99,16 @@ def test():
     print(eq)
 
 
+def save(step):
+    torch.save(model.state_dict(), 'p3d_ucf101_{}.ckpt'.format(step))
+
+
 i = 1
-while i < step:
+while i <= step:
     if i % 100 == 0:
         test()
     else:
         train()
+    if i % 1000 == 0:
+        save(i)
     i = i + 1
