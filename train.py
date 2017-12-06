@@ -9,6 +9,8 @@ import numpy as np
 from PIL import Image
 
 train_list = 'ucfTrainTestlist/trainlist01.txt'
+test_list = 'ucfTrainTestlist/testlist01.txt'
+class_index = 'ucfTrainTestlist/classInd.txt'
 data_dir = 'data'
 batch_size = 10
 step = 1000000
@@ -26,6 +28,20 @@ def read_train_list():
         file, label = line.replace('.avi', '').replace('\r\n', '').split(' ')
         files.append(file)
         labels.append(int(label) - 1)
+    return files, labels
+
+
+def read_test_list():
+    classes = []
+    files = []
+    labels = []
+    for line in open(class_index):
+        classes.append(line.replace('\r\n', '').split(' ')[1])
+    for line in open(test_list):
+        file = line.replace('.avi', '').replace('\r\n', '')
+        clazz = file.split('/')[0]
+        files.append(file)
+        labels.append(classes.index(clazz))
     return files, labels
 
 
@@ -57,16 +73,31 @@ def read_batch(files, labels):
 
 
 files, labels = read_train_list()
+test_files, test_labels = read_test_list()
+
 model = P3D199(num_classes=101)
 model = model.cuda()
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-for i in range(step):
-    data, data_label = read_batch(files, labels)
-    out = model(torch.autograd.Variable(data.float()).cuda())
-    loss = criterion(out, torch.autograd.Variable(data_label, requires_grad=False).cuda())
-    print(i, loss.data[0])
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
+i = 1
+while i < step:
+    if i % 100 == 0:
+        test_data, test_label = read_batch(test_files, test_labels)
+        out = model(torch.autograd.Variable(test_data.float()).cuda())
+        _, predict_label = torch.max(out, dim=1)
+        eq = torch.eq(predict_label, torch.autograd.Variable(test_label).cuda())
+        print(eq)
+        loss = criterion(out, torch.autograd.Variable(data_label, requires_grad=False).cuda())
+        loss.backward()
+        optimizer.zero_grad()
+        optimizer.step()
+    else:
+        data, data_label = read_batch(files, labels)
+        out = model(torch.autograd.Variable(data.float()).cuda())
+        loss = criterion(out, torch.autograd.Variable(data_label, requires_grad=False).cuda())
+        print(i, loss.data[0])
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+    i = i + 1
